@@ -77,7 +77,6 @@
   .extra-toggle:hover,.extra-toggle.open{border-color:var(--accent);color:var(--accent);}
   .item-actions{padding:0 14px 8px 46px;display:flex;align-items:center;gap:8px;}
   .sobra-inline{font-family:'DM Mono',monospace;font-size:10px;color:var(--blue);}
-  /* OVERLAY GENÉRICO */
   .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;align-items:center;justify-content:center;padding:20px;}
   .overlay.visible{display:flex;}
   .modal{background:white;border-radius:16px;padding:24px;max-width:440px;width:100%;max-height:85vh;overflow-y:auto;}
@@ -96,16 +95,18 @@
   .modal-btn.confirm{background:var(--green);color:white;}
   .modal-btn.confirm-blue{background:var(--blue);color:white;}
   .saving-msg{text-align:center;padding:16px;font-family:'DM Mono',monospace;font-size:13px;color:var(--green);display:none;}
-  /* IMPORTAR */
   .import-area{width:100%;min-height:100px;font-family:'DM Mono',monospace;font-size:11px;border:1.5px solid var(--border);border-radius:8px;padding:10px;resize:vertical;background:#fafaf7;color:var(--ink);}
-  .import-hint{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5;}
-  /* FOOTER */
+  .import-hint{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:6px;line-height:1.6;}
   .footer-summary{position:fixed;bottom:0;left:0;right:0;background:var(--ink);color:#fff;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;font-family:'DM Mono',monospace;font-size:11px;z-index:200;gap:12px;flex-wrap:wrap;}
   .footer-col{display:flex;flex-direction:column;gap:1px;}
   .footer-val{font-size:14px;font-weight:500;}
   .footer-val.accent{color:var(--accent);}
   .footer-val.blue{color:#93c5fd;}
   .msg-center{text-align:center;padding:50px 20px;font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);}
+  .reposicao-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;}
+  .reposicao-table th{background:var(--ink);color:#fff;padding:6px 8px;text-align:left;font-family:'DM Mono',monospace;font-size:10px;}
+  .reposicao-table td{padding:6px 8px;border-bottom:1px solid var(--border);font-family:'DM Mono',monospace;font-size:11px;}
+  .reposicao-table tr:last-child td{border-bottom:none;}
 </style>
 </head>
 <body>
@@ -130,7 +131,7 @@
   <button class="btn" onclick="filterPending(this)">Pendentes</button>
   <button class="btn" onclick="filterChecked(this)">Comprados</button>
   <button class="btn btn-importar" onclick="abrirImportar()">↑ Nova Lista</button>
-  <button class="btn btn-finalizar" onclick="abrirModal()">✓ Finalizar</button>
+  <button class="btn btn-finalizar" onclick="abrirFinalizar()">✓ Finalizar</button>
   <button class="btn-reset" onclick="resetAll()">↺ Resetar</button>
 </div>
 <div id="loading"><div class="spinner"></div><br>Carregando lista...</div>
@@ -146,35 +147,19 @@
   </div>
 </div>
 
-<!-- MODAL FINALIZAR -->
-<div class="overlay" id="overlay">
-  <div class="modal">
-    <h2>Finalizar Compra</h2>
-    <div class="modal-sub" id="modalSub"></div>
-    <div id="modalContent"></div>
-    <div class="saving-msg" id="savingMsg">💾 Gravando no sistema...</div>
-    <div class="modal-btns" id="modalBtns">
-      <button class="modal-btn cancel" onclick="fecharModal()">Cancelar</button>
-      <button class="modal-btn confirm" onclick="confirmarCompra()">Confirmar e Gravar</button>
-    </div>
-  </div>
-</div>
-
 <!-- MODAL IMPORTAR -->
 <div class="overlay" id="overlayImportar">
   <div class="modal">
-    <h2>Nova Lista</h2>
-    <div class="modal-sub">Cole abaixo o JSON gerado pelo Claude ao enviar o PDF.</div>
-    <div class="modal-section">
-      <textarea class="import-area" id="jsonInput" placeholder='{"action":"update_lista","data":"dd/mm/aaaa","items":[...]}'></textarea>
-      <div class="import-hint">
-        📋 Como usar:<br>
-        1. Envie o PDF do VMpay aqui no Claude<br>
-        2. Peça "Atualizar lista RA Market"<br>
-        3. Claude gera um JSON — copie e cole aqui
-      </div>
+    <h2>↑ Nova Lista</h2>
+    <div class="modal-sub">Cole o JSON gerado pelo Claude ao enviar o PDF.</div>
+    <textarea class="import-area" id="jsonInput" placeholder='{"action":"update_lista","data":"03/06/2026","items":[...]}'></textarea>
+    <div class="import-hint">
+      Como usar:<br>
+      1. Envie o PDF do VMpay aqui no Claude<br>
+      2. Peça "Atualizar lista RA Market"<br>
+      3. Copie o JSON e cole aqui
     </div>
-    <div class="saving-msg" id="importMsg">⏳ Enviando para o Sheets...</div>
+    <div class="saving-msg" id="importMsg"></div>
     <div class="modal-btns" id="importBtns">
       <button class="modal-btn cancel" onclick="fecharImportar()">Cancelar</button>
       <button class="modal-btn confirm-blue" onclick="importarLista()">Importar Lista</button>
@@ -182,47 +167,184 @@
   </div>
 </div>
 
-<script>
-const SCRIPT_URL='https://script.google.com/macros/s/AKfycbzXjFd38r3El9_gvWmvpJ0zfL4rMq48jiIVW2Bf3qaBT8CYRBHCOtuSAdGx3ObffsG9/exec';
-const CAT_ICONS={"Bebidas Alcoólicas":"🍺","Bebidas sem Álcool":"🥤","Congelados":"🧊","Doces e Salgados":"🍫","Higiene Pessoal":"🧴","Limpeza":"🧽","Mercearia":"🛒","Cesta Básica":"📦"};
-let ITEMS=[],state={},responsavel='Rodrigo',filterMode='all';
+<!-- MODAL FINALIZAR -->
+<div class="overlay" id="overlayFinalizar">
+  <div class="modal">
+    <h2>✓ Finalizar Compra</h2>
+    <div class="modal-sub" id="finalizarSub"></div>
+    <div id="finalizarContent"></div>
+    <div class="saving-msg" id="finalizarMsg"></div>
+    <div class="modal-btns" id="finalizarBtns">
+      <button class="modal-btn cancel" onclick="fecharFinalizar()">Cancelar</button>
+      <button class="modal-btn confirm" onclick="confirmarCompra()">Confirmar e Salvar</button>
+    </div>
+  </div>
+</div>
 
-function getKey(item){return'c'+item.canal;}
+<script>
+// ── JSONBIN CONFIG ───────────────────────────────────────────
+const API_KEY = '$2a$10$CX54KOG/l8LrP.6QeHVBM.Vn88qAWFW6d9jBvyi4rpdJipqFpsuZ.';
+const BIN_ID_KEY = 'ra_bin_id';
+const BASE_URL = 'https://api.jsonbin.io/v3';
+
+const CAT_ICONS = {"Bebidas Alcoólicas":"🍺","Bebidas sem Álcool":"🥤","Congelados":"🧊","Doces e Salgados":"🍫","Higiene Pessoal":"🧴","Limpeza":"🧽","Mercearia":"🛒","Cesta Básica":"📦"};
+
+let ITEMS = [], state = {}, responsavel = 'Rodrigo', filterMode = 'all';
+let BIN_ID = localStorage.getItem(BIN_ID_KEY) || null;
+
+function getKey(item){return 'c'+item.canal;}
 function getComprado(item){const k=getKey(item);return(state[k]&&state[k].comprado!==undefined)?state[k].comprado:item.qty;}
 function isChecked(item){return!!(state[getKey(item)]&&state[getKey(item)].checked);}
-function saveState(){localStorage.setItem('ra_state_v3',JSON.stringify(state));}
-function loadState(){state=JSON.parse(localStorage.getItem('ra_state_v3')||'{}');}
+function saveLocalState(){localStorage.setItem('ra_state_v4',JSON.stringify(state));}
+function loadLocalState(){state=JSON.parse(localStorage.getItem('ra_state_v4')||'{}');}
 
-async function carregarLista(){
-  document.getElementById('loading').style.display='block';
-  document.getElementById('main').style.display='none';
-  try{
-    const url=SCRIPT_URL+'?action=get_lista&t='+Date.now();
-    const res=await fetch(url);
-    const data=await res.json();
-    ITEMS=data.items||[];
-    document.getElementById('headerMeta').innerHTML=`LISTA DE COMPRAS<br>${data.dataPedido||'—'}<br>Residencial Treze 36`;
-    loadState();
-    ITEMS.forEach(item=>{const k=getKey(item);if(!state[k])state[k]={checked:false,comprado:item.qty};});
-    render();
-  }catch(e){
-    document.getElementById('loading').innerHTML='<div style="color:#ef4444">❌ Erro ao carregar.<br><span style="font-size:11px">Tente importar uma nova lista.</span></div>';
-    document.getElementById('main').style.display='block';
-    document.getElementById('loading').style.display='block';
-    loadState(); render();
-  }finally{
-    document.getElementById('loading').style.display='none';
-    document.getElementById('main').style.display='block';
+// ── JSONBIN API ──────────────────────────────────────────────
+async function criarBin(dados) {
+  const res = await fetch(`${BASE_URL}/b`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-Access-Key':API_KEY,'X-Bin-Name':'RA Market Lista'},
+    body: JSON.stringify(dados)
+  });
+  const data = await res.json();
+  return data.metadata.id;
+}
+
+async function lerBin() {
+  if (!BIN_ID) return null;
+  const res = await fetch(`${BASE_URL}/b/${BIN_ID}/latest`, {
+    headers: {'X-Access-Key': API_KEY}
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.record;
+}
+
+async function gravarBin(dados) {
+  if (!BIN_ID) {
+    BIN_ID = await criarBin(dados);
+    localStorage.setItem(BIN_ID_KEY, BIN_ID);
+    return;
+  }
+  await fetch(`${BASE_URL}/b/${BIN_ID}`, {
+    method: 'PUT',
+    headers: {'Content-Type':'application/json','X-Access-Key':API_KEY},
+    body: JSON.stringify(dados)
+  });
+}
+
+// ── CARREGAR LISTA ───────────────────────────────────────────
+async function carregarLista() {
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('main').style.display = 'none';
+  try {
+    const dados = await lerBin();
+    if (dados && dados.items && dados.items.length) {
+      ITEMS = dados.items;
+      document.getElementById('headerMeta').innerHTML = `LISTA DE COMPRAS<br>${dados.data||'—'}<br>Residencial Treze 36`;
+    }
+  } catch(e) {}
+  loadLocalState();
+  ITEMS.forEach(item => {const k=getKey(item);if(!state[k])state[k]={checked:false,comprado:item.qty};});
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('main').style.display = 'block';
+  render();
+}
+
+// ── IMPORTAR ─────────────────────────────────────────────────
+function abrirImportar(){
+  document.getElementById('jsonInput').value='';
+  document.getElementById('importMsg').style.display='none';
+  document.getElementById('importBtns').style.display='flex';
+  document.getElementById('overlayImportar').classList.add('visible');
+}
+function fecharImportar(){document.getElementById('overlayImportar').classList.remove('visible');}
+
+async function importarLista() {
+  const raw = document.getElementById('jsonInput').value.trim();
+  if(!raw){alert('Cole o JSON gerado pelo Claude.');return;}
+  let dados;
+  try{dados=JSON.parse(raw);}catch(e){alert('JSON inválido. Copie novamente do Claude.');return;}
+  document.getElementById('importBtns').style.display='none';
+  const msg = document.getElementById('importMsg');
+  msg.style.display='block';
+  msg.textContent='⏳ Salvando lista...';
+  try {
+    await gravarBin(dados);
+    ITEMS = dados.items || [];
+    state = {};
+    saveLocalState();
+    ITEMS.forEach(item=>{const k=getKey(item);state[k]={checked:false,comprado:item.qty};});
+    document.getElementById('headerMeta').innerHTML=`LISTA DE COMPRAS<br>${dados.data||'—'}<br>Residencial Treze 36`;
+    msg.textContent='✅ Lista atualizada para todos!';
+    setTimeout(()=>{fecharImportar();render();},1500);
+  } catch(e) {
+    msg.textContent='❌ Erro ao salvar: '+e.message;
+    document.getElementById('importBtns').style.display='flex';
   }
 }
 
+// ── FINALIZAR ─────────────────────────────────────────────────
+function abrirFinalizar(){
+  const comprados=ITEMS.filter(i=>isChecked(i));
+  if(!comprados.length){alert('Nenhum item marcado ainda.');return;}
+  const sobras=comprados.filter(i=>Math.max(0,getComprado(i)-i.qty)>0);
+  const pend=ITEMS.filter(i=>!isChecked(i));
+  let html=`<div class="modal-section"><h3>✅ Comprados (${comprados.length})</h3>`;
+  comprados.forEach(i=>{html+=`<div class="modal-item"><span class="modal-item-name">${i.name}</span><span class="modal-item-qty">${getComprado(i)} un.</span></div>`;});
+  html+='</div>';
+  if(sobras.length){
+    html+=`<div class="modal-section"><h3>📦 Sobra p/ Estoque (${sobras.length})</h3>`;
+    sobras.forEach(i=>{const s=getComprado(i)-i.qty;html+=`<div class="modal-item"><span class="modal-item-name">${i.name}</span><span class="modal-item-qty sobra">+${s} un.</span></div>`;});
+    html+='</div>';
+  }
+  if(pend.length){
+    html+=`<div class="modal-section"><h3>⚠️ Não comprados (${pend.length})</h3>`;
+    pend.forEach(i=>{html+=`<div class="modal-item"><span class="modal-item-name">${i.name}</span><span class="modal-item-qty">${i.qty} un.</span></div>`;});
+    html+='</div>';
+  }
+  document.getElementById('finalizarSub').textContent=`Responsável: ${responsavel}`;
+  document.getElementById('finalizarContent').innerHTML=html;
+  document.getElementById('finalizarMsg').style.display='none';
+  document.getElementById('finalizarBtns').style.display='flex';
+  document.getElementById('overlayFinalizar').classList.add('visible');
+}
+function fecharFinalizar(){document.getElementById('overlayFinalizar').classList.remove('visible');}
+
+async function confirmarCompra(){
+  document.getElementById('finalizarBtns').style.display='none';
+  const msg=document.getElementById('finalizarMsg');
+  msg.style.display='block';
+  msg.textContent='⏳ Salvando reposição...';
+  const reposicao={
+    data: new Date().toLocaleString('pt-BR'),
+    responsavel,
+    itens: ITEMS.map(i=>({
+      canal:i.canal,name:i.name,
+      necessario:i.qty,comprado:getComprado(i),
+      sobra:Math.max(0,getComprado(i)-i.qty),
+      status:isChecked(i)?'Comprado':'Pendente'
+    }))
+  };
+  try{
+    const dadosAtuais = await lerBin() || {};
+    dadosAtuais.reposicao = reposicao;
+    await gravarBin(dadosAtuais);
+    msg.textContent='✅ Reposição salva! Sua irmã pode ver no sistema.';
+    setTimeout(fecharFinalizar,2500);
+  }catch(e){
+    msg.textContent='❌ Erro ao salvar.';
+    document.getElementById('finalizarBtns').style.display='flex';
+  }
+}
+
+// ── INTERAÇÕES ────────────────────────────────────────────────
 function setResp(btn,nome){document.querySelectorAll('.resp-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');responsavel=nome;}
-function toggleCheck(key){if(!state[key])state[key]={};state[key].checked=!state[key].checked;saveState();render();}
+function toggleCheck(key){if(!state[key])state[key]={};state[key].checked=!state[key].checked;saveLocalState();render();}
 function changeComprado(key,delta,itemQty){
   if(!state[key])state[key]={checked:false,comprado:itemQty};
   const cur=state[key].comprado!==undefined?state[key].comprado:itemQty;
   state[key].comprado=Math.max(0,cur+delta);
-  saveState();updateItemBadge(key,itemQty);updateFooter();
+  saveLocalState();updateItemBadge(key,itemQty);updateFooter();
 }
 function updateItemBadge(key,itemQty){
   const valEl=document.getElementById('val_'+key);
@@ -247,82 +369,10 @@ function filterAll(btn){filterMode='all';setActiveBtn(btn);render();}
 function filterPending(btn){filterMode='pending';setActiveBtn(btn);render();}
 function filterChecked(btn){filterMode='checked';setActiveBtn(btn);render();}
 function setActiveBtn(btn){document.querySelectorAll('.controls .btn:not(.btn-finalizar):not(.btn-importar)').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
-function toggleCategory(header){header.nextElementSibling.classList.toggle('hidden');header.classList.toggle('collapsed');}
-function resetAll(){if(confirm('Resetar todos os itens e quantidades?')){state={};saveState();render();}}
+function toggleCategory(h){h.nextElementSibling.classList.toggle('hidden');h.classList.toggle('collapsed');}
+function resetAll(){if(confirm('Resetar todos os itens?')){state={};saveLocalState();render();}}
 
-// ── MODAL FINALIZAR ──────────────────────────────────────────
-function abrirModal(){
-  const comprados=ITEMS.filter(i=>isChecked(i));
-  if(!comprados.length){alert('Nenhum item marcado ainda.');return;}
-  const sobraItens=comprados.filter(i=>Math.max(0,getComprado(i)-i.qty)>0);
-  let html=`<div class="modal-section"><h3>✅ Comprados (${comprados.length})</h3>`;
-  comprados.forEach(i=>{html+=`<div class="modal-item"><span class="modal-item-name">${i.name}</span><span class="modal-item-qty">${getComprado(i)} un.</span></div>`;});
-  html+='</div>';
-  if(sobraItens.length){
-    html+=`<div class="modal-section"><h3>📦 Sobra p/ Estoque</h3>`;
-    sobraItens.forEach(i=>{const s=getComprado(i)-i.qty;html+=`<div class="modal-item"><span class="modal-item-name">${i.name}</span><span class="modal-item-qty sobra">+${s} un.</span></div>`;});
-    html+='</div>';
-  }
-  const pend=ITEMS.filter(i=>!isChecked(i));
-  if(pend.length){
-    html+=`<div class="modal-section"><h3>⚠️ Não comprados (${pend.length})</h3>`;
-    pend.forEach(i=>{html+=`<div class="modal-item"><span class="modal-item-name">${i.name}</span><span class="modal-item-qty">${i.qty} un.</span></div>`;});
-    html+='</div>';
-  }
-  document.getElementById('modalSub').textContent=`Responsável: ${responsavel} — Será gravado no Sheets.`;
-  document.getElementById('modalContent').innerHTML=html;
-  document.getElementById('savingMsg').style.display='none';
-  document.getElementById('modalBtns').style.display='flex';
-  document.getElementById('overlay').classList.add('visible');
-}
-function fecharModal(){document.getElementById('overlay').classList.remove('visible');}
-async function confirmarCompra(){
-  document.getElementById('modalBtns').style.display='none';
-  document.getElementById('savingMsg').style.display='block';
-  const payload=ITEMS.map(item=>({canal:item.canal,name:item.name,qty:item.qty,comprado:getComprado(item),sobra:Math.max(0,getComprado(item)-item.qty),status:isChecked(item)?'Comprado':'Pendente'}));
-  try{
-    await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'finalizar_compra',items:payload,responsavel})});
-    document.getElementById('savingMsg').innerHTML='✅ Gravado! Sua irmã pode confirmar no Sheets.';
-    setTimeout(fecharModal,2500);
-  }catch(e){
-    document.getElementById('savingMsg').innerHTML='❌ Erro ao gravar. Tente novamente.';
-    document.getElementById('modalBtns').style.display='flex';
-  }
-}
-
-// ── MODAL IMPORTAR ───────────────────────────────────────────
-function abrirImportar(){
-  document.getElementById('jsonInput').value='';
-  document.getElementById('importMsg').style.display='none';
-  document.getElementById('importBtns').style.display='flex';
-  document.getElementById('overlayImportar').classList.add('visible');
-}
-function fecharImportar(){document.getElementById('overlayImportar').classList.remove('visible');}
-async function importarLista(){
-  const raw=document.getElementById('jsonInput').value.trim();
-  if(!raw){alert('Cole o JSON gerado pelo Claude.');return;}
-  let data;
-  try{data=JSON.parse(raw);}catch(e){alert('JSON inválido. Copie novamente do Claude.');return;}
-  document.getElementById('importBtns').style.display='none';
-  document.getElementById('importMsg').style.display='block';
-  document.getElementById('importMsg').textContent='⏳ Enviando para o Sheets...';
-  try{
-    const res=await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(data)});
-    const result=await res.json();
-    if(result.ok){
-      document.getElementById('importMsg').textContent='✅ Lista atualizada! Recarregando...';
-      state={};saveState();
-      setTimeout(()=>{fecharImportar();carregarLista();},1500);
-    } else {
-      throw new Error(result.error||'Erro desconhecido');
-    }
-  }catch(e){
-    document.getElementById('importMsg').textContent='❌ Erro: '+e.message;
-    document.getElementById('importBtns').style.display='flex';
-  }
-}
-
-// ── RENDER ───────────────────────────────────────────────────
+// ── RENDER ────────────────────────────────────────────────────
 function updateFooter(){
   const rest=ITEMS.filter(i=>!isChecked(i)).reduce((s,i)=>s+i.qty,0);
   const sob=ITEMS.reduce((s,i)=>s+Math.max(0,getComprado(i)-i.qty),0);
@@ -332,7 +382,7 @@ function updateFooter(){
 function render(){
   const main=document.getElementById('main');
   if(!ITEMS.length){
-    main.innerHTML='<div class="msg-center">Nenhum item na lista.<br><br>Clique em <strong>↑ Nova Lista</strong> e cole o JSON gerado pelo Claude.</div>';
+    main.innerHTML='<div class="msg-center">Nenhum item na lista.<br><br>Clique em <strong>↑ Nova Lista</strong><br>e cole o JSON gerado pelo Claude.</div>';
     updateFooter();return;
   }
   const cats={};
@@ -396,6 +446,7 @@ function render(){
   main.innerHTML=html;
   updateFooter();
 }
+
 carregarLista();
 </script>
 </body>
