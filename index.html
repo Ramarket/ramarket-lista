@@ -122,9 +122,9 @@
 </header>
 <div class="resp-bar">
   <span class="resp-label">QUEM ESTÁ COMPRANDO:</span>
-  <button class="resp-btn active" onclick="setResp(this,'Rodrigo')">Rodrigo</button>
-  <button class="resp-btn" onclick="setResp(this,'Cunhado')">Cunhado</button>
-  <button class="resp-btn" onclick="setResp(this,'Irmã')">Irmã</button>
+  <button class="resp-btn active" onclick="setResp(this,'Rafael')">Rafael</button>
+  <button class="resp-btn" onclick="setResp(this,'Ricardo')">Ricardo</button>
+  <button class="resp-btn" onclick="setResp(this,'Raíssa')">Raíssa</button>
 </div>
 <div class="controls">
   <button class="btn active" onclick="filterAll(this)">Todos</button>
@@ -189,7 +189,7 @@ const BASE_URL = 'https://api.jsonbin.io/v3';
 
 const CAT_ICONS = {"Bebidas Alcoólicas":"🍺","Bebidas sem Álcool":"🥤","Congelados":"🧊","Doces e Salgados":"🍫","Higiene Pessoal":"🧴","Limpeza":"🧽","Mercearia":"🛒","Cesta Básica":"📦"};
 
-let ITEMS = [], state = {}, responsavel = 'Rodrigo', filterMode = 'all';
+let ITEMS = [], state = {}, responsavel = 'Rafael', filterMode = 'all';
 let BIN_ID = localStorage.getItem(BIN_ID_KEY) || null;
 
 function getKey(item){return 'c'+item.canal;}
